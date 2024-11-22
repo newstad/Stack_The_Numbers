@@ -4,9 +4,15 @@ import sys
 
 pygame.init()
 
-# Screen settings
-WIDTH, HEIGHT = 800, 600  
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+fullscreen_mode = input("Do you want to play in fullscreen mode? (yes/no): ").strip().lower()
+if fullscreen_mode == "yes":
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    info = pygame.display.Info()
+    WIDTH, HEIGHT = info.current_w, info.current_h
+else:
+    WIDTH, HEIGHT = 800, 600
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
 pygame.display.set_caption("Stack the Numbers")
 
 WHITE = (255, 255, 255)
@@ -15,27 +21,25 @@ RED = (255, 0, 0)
 GREEN = (0, 200, 0)
 BLUE = (0, 0, 255)
 
-# Scaling factors
-block_width = WIDTH // 12  
-block_height = HEIGHT // 30  
-platform_width = WIDTH // 6  
-platform_height = HEIGHT // 40  
-font_size = HEIGHT // 30  
-title_font_size = HEIGHT // 20  
-developer_font_size = HEIGHT // 40  
+block_width = WIDTH // 12
+block_height = HEIGHT // 30
+platform_width = WIDTH // 6
+platform_height = HEIGHT // 40
+font_size = HEIGHT // 30
+title_font_size = HEIGHT // 20
+developer_font_size = HEIGHT // 40
 
 font = pygame.font.Font(None, font_size)
 title_font = pygame.font.Font(None, title_font_size)
 developer_font = pygame.font.Font(None, developer_font_size)
 
-# Game variables
 stack = []
-safe_zone_top = HEIGHT // 4  
-left_wall = WIDTH // 10  
-right_wall = WIDTH - WIDTH // 10  
+safe_zone_top = HEIGHT // 4
+left_wall = WIDTH // 10
+right_wall = WIDTH - WIDTH // 10
 current_block = pygame.Rect(left_wall, safe_zone_top, block_width, block_height)
-block_speed = WIDTH // 800  
-fall_speed = HEIGHT // 600  
+block_speed = WIDTH // 800
+fall_speed = HEIGHT // 600
 platform = pygame.Rect(WIDTH // 2 - platform_width // 2, HEIGHT - platform_height - 20, platform_width, platform_height)
 score = 0
 moving_right = True
@@ -49,12 +53,10 @@ def generate_math_questions():
         questions.append({"question": f"What is {a} + {b}?", "answer": str(a + b)})
         questions.append({"question": f"What is {a} - {b}?", "answer": str(a - b)})
         questions.append({"question": f"What is {a} * {b}?", "answer": str(a * b)})
-        # Avoid division by zero and ensure integer results
         if b != 0 and a % b == 0:
             questions.append({"question": f"What is {a} / {b}?", "answer": str(a // b)})
     return questions
 
-# Generate multiple-choice options
 def generate_options(correct_answer):
     correct_answer = int(correct_answer)
     options = {correct_answer}
@@ -64,9 +66,8 @@ def generate_options(correct_answer):
     random.shuffle(options)
     return options
 
-# Build a pool of all questions
 math_questions = generate_math_questions()
-questions = math_questions  # Add more question categories here if needed
+questions = math_questions
 
 def draw_title():
     italic_font = pygame.font.Font(None, title_font_size)
@@ -100,10 +101,7 @@ def draw_score(score):
 def draw_game_over():
     game_over_text = title_font.render("You Lose", True, RED)
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2))
-
-    developer_text = developer_font.render(
-        "Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK
-    )
+    developer_text = developer_font.render("Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK)
     screen.blit(developer_text, (WIDTH // 40, HEIGHT - developer_text.get_height() - HEIGHT // 40))
 
 def move_block():
@@ -121,11 +119,8 @@ def drop_block():
     global falling, score, game_over
     if falling:
         current_block.y += fall_speed
-
-        # Check for collisions with stack
         for block in stack:
             if current_block.colliderect(block):
-                # Stop falling and stack the block
                 falling = False
                 current_block.y = block.top - block_height
                 stack.append(current_block.copy())
@@ -133,10 +128,7 @@ def drop_block():
                 current_block.y = safe_zone_top
                 score += 1
                 return
-
-        # Check for collision with platform
         if current_block.colliderect(platform):
-            # Stop falling and stack the block
             falling = False
             current_block.y = platform.top - block_height
             stack.append(current_block.copy())
@@ -144,49 +136,33 @@ def drop_block():
             current_block.y = safe_zone_top
             score += 1
         elif current_block.bottom >= HEIGHT:
-            # Block missed the platform
             game_over = True
 
-# Main game loop
 running = True
 current_question = random.choice(questions)
 current_question["options"] = generate_options(current_question["answer"])
 
 while running:
     screen.fill(WHITE)
-
-    # Draw the title
     draw_title()
-
     if game_over:
         draw_game_over()
     else:
-        # Draw the question and options
         draw_question(current_question)
-
-        # Draw the stacked blocks
         draw_stack()
-
-        # Draw the platform
         draw_platform()
-
-        # Draw the score
         draw_score(score)
-
         if not falling:
             move_block()
         else:
             drop_block()
-
         pygame.draw.rect(screen, GREEN, current_block)
         pygame.draw.rect(screen, BLACK, current_block, 2)
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
             pygame.quit()
             sys.exit()
-
         if not game_over and event.type == pygame.KEYDOWN:
             if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]:
                 choice = event.key - pygame.K_1
@@ -195,13 +171,11 @@ while running:
                     current_question = random.choice(questions)
                     current_question["options"] = generate_options(current_question["answer"])
                 else:
-                    # Remove the top block for a wrong answer
                     if stack:
                         stack.pop()
                     score -= 1
                     if score < 0:
                         game_over = True
-
     pygame.display.flip()
 
 pygame.quit()
