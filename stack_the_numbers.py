@@ -37,6 +37,9 @@ stack = []
 safe_zone_top = HEIGHT // 4
 left_wall = WIDTH // 10
 right_wall = WIDTH - WIDTH // 10
+win_line_height = HEIGHT // 4
+win_line_start_x = WIDTH // 4  # Line starts from 1/4 of the screen width
+win_line_end_x = 3 * WIDTH // 4  # Line ends at 3/4 of the screen width
 current_block = pygame.Rect(left_wall, safe_zone_top, block_width, block_height)
 block_speed = WIDTH // 800
 fall_speed = HEIGHT // 600
@@ -45,6 +48,7 @@ score = 0
 moving_right = True
 falling = False
 game_over = False
+game_won = False
 
 def generate_math_questions():
     questions = []
@@ -91,6 +95,9 @@ def draw_platform():
     pygame.draw.rect(screen, BLUE, platform)
     pygame.draw.rect(screen, BLACK, platform, 2)
 
+def draw_win_line():
+    pygame.draw.line(screen, RED, (win_line_start_x, win_line_height), (win_line_end_x, win_line_height), 3)
+
 def check_answer(question_data, choice):
     return str(question_data["options"][choice]) == str(question_data["answer"])
 
@@ -101,6 +108,12 @@ def draw_score(score):
 def draw_game_over():
     game_over_text = title_font.render("You Lose", True, RED)
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2))
+    developer_text = developer_font.render("Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK)
+    screen.blit(developer_text, (WIDTH // 40, HEIGHT - developer_text.get_height() - HEIGHT // 40))
+
+def draw_game_won():
+    win_text = title_font.render("You Win!", True, GREEN)
+    screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - win_text.get_height() // 2))
     developer_text = developer_font.render("Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK)
     screen.blit(developer_text, (WIDTH // 40, HEIGHT - developer_text.get_height() - HEIGHT // 40))
 
@@ -138,6 +151,11 @@ def drop_block():
         elif current_block.bottom >= HEIGHT:
             game_over = True
 
+def check_win_condition():
+    global game_won
+    if stack and any(block.top <= win_line_height for block in stack):
+        game_won = True
+
 running = True
 current_question = random.choice(questions)
 current_question["options"] = generate_options(current_question["answer"])
@@ -145,12 +163,15 @@ current_question["options"] = generate_options(current_question["answer"])
 while running:
     screen.fill(WHITE)
     draw_title()
-    if game_over:
+    if game_won:
+        draw_game_won()
+    elif game_over:
         draw_game_over()
     else:
         draw_question(current_question)
         draw_stack()
         draw_platform()
+        draw_win_line()
         draw_score(score)
         if not falling:
             move_block()
@@ -158,12 +179,13 @@ while running:
             drop_block()
         pygame.draw.rect(screen, GREEN, current_block)
         pygame.draw.rect(screen, BLACK, current_block, 2)
+        check_win_condition()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
             pygame.quit()
             sys.exit()
-        if not game_over and event.type == pygame.KEYDOWN:
+        if not game_over and not game_won and event.type == pygame.KEYDOWN:
             if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]:
                 choice = event.key - pygame.K_1
                 if check_answer(current_question, choice):
