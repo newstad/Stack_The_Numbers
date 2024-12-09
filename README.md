@@ -73,13 +73,13 @@
 
 ---
 
-## 📄 License
+**License**
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👥 Credits
+**Credits**
 
 Developed by:  
 - **William Newstad**  
@@ -89,7 +89,7 @@ Developed by:
 
 ---
 
-**Enjoy playing Stack the Numbers! 🎉**
+**Enjoy playing Stack the Numbers!**
 
 ---
 
