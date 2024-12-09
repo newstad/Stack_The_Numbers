@@ -20,9 +20,10 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 200, 0)
 BLUE = (0, 0, 255)
+GRAY = (200, 200, 200)
 
 block_width = WIDTH // 12
-block_height = HEIGHT // 30
+block_height = HEIGHT // 25
 platform_width = WIDTH // 6
 platform_height = HEIGHT // 40
 font_size = HEIGHT // 30
@@ -38,8 +39,8 @@ safe_zone_top = HEIGHT // 4
 left_wall = WIDTH // 10
 right_wall = WIDTH - WIDTH // 10
 win_line_height = HEIGHT // 4
-win_line_start_x = WIDTH // 4  # Line starts from 1/4 of the screen width
-win_line_end_x = 3 * WIDTH // 4  # Line ends at 3/4 of the screen width
+win_line_start_x = WIDTH // 4
+win_line_end_x = 3 * WIDTH // 4
 current_block = pygame.Rect(left_wall, safe_zone_top, block_width, block_height)
 block_speed = WIDTH // 800
 fall_speed = HEIGHT // 600
@@ -49,6 +50,20 @@ moving_right = True
 falling = False
 game_over = False
 game_won = False
+game_started = False
+
+def reset_game():
+    global stack, score, current_block, falling, moving_right, game_over, game_won, questions, current_question
+    stack = []
+    score = 0
+    current_block = pygame.Rect(left_wall, safe_zone_top, block_width, block_height)
+    falling = False
+    moving_right = True
+    game_over = False
+    game_won = False
+    questions = generate_math_questions()
+    current_question = random.choice(questions)
+    current_question["options"] = generate_options(current_question["answer"])
 
 def generate_math_questions():
     questions = []
@@ -79,11 +94,29 @@ def draw_title():
     title_text = italic_font.render("Stack the Numbers", True, BLACK)
     screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 40))
 
+def draw_start_screen():
+    lines = [
+        "Welcome to Stack the Numbers.",
+        "The goal of this game is to get as many math questions right as possible.",
+        "Stack the block tower high enough to touch the black line.",
+        "If you get a question wrong, you lose a point.",
+        "If you miss the tower, you automatically lose the game.",
+        "Select the correct answer using the a, b, c, and d keys.",
+        "Click the key when the green block is over the blue platform to drop it.",
+        "Press ENTER to begin."
+    ]
+    y_offset = HEIGHT // 5
+    for line in lines:
+        text = font.render(line, True, BLACK)
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, y_offset))
+        y_offset += font_size + 10
+
 def draw_question(question_data):
     question = font.render(question_data["question"], True, BLACK)
     screen.blit(question, (WIDTH // 40, HEIGHT // 8))
     for i, option in enumerate(question_data["options"]):
-        option_text = font.render(f"{i + 1}. {option}", True, BLACK)
+        labels = ["a", "b", "c", "d"]
+        option_text = font.render(f"{labels[i]}. {option}", True, BLACK)
         screen.blit(option_text, (WIDTH // 40, HEIGHT // 6 + i * (font_size + 10)))
 
 def draw_stack():
@@ -107,15 +140,27 @@ def draw_score(score):
 
 def draw_game_over():
     game_over_text = title_font.render("You Lose", True, RED)
-    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2))
+    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 3))
+    play_again_button = pygame.Rect(WIDTH - 220, HEIGHT - 80, 200, 50)
+    pygame.draw.rect(screen, GRAY, play_again_button)
+    pygame.draw.rect(screen, BLACK, play_again_button, 2)
+    play_again_text = font.render("Play Again", True, BLACK)
+    screen.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2, play_again_button.centery - play_again_text.get_height() // 2))
     developer_text = developer_font.render("Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK)
     screen.blit(developer_text, (WIDTH // 40, HEIGHT - developer_text.get_height() - HEIGHT // 40))
+    return play_again_button
 
 def draw_game_won():
     win_text = title_font.render("You Win!", True, GREEN)
-    screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - win_text.get_height() // 2))
+    screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 3))
+    play_again_button = pygame.Rect(WIDTH - 220, HEIGHT - 80, 200, 50)
+    pygame.draw.rect(screen, GRAY, play_again_button)
+    pygame.draw.rect(screen, BLACK, play_again_button, 2)
+    play_again_text = font.render("Play Again", True, BLACK)
+    screen.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2, play_again_button.centery - play_again_text.get_height() // 2))
     developer_text = developer_font.render("Developed by: William Newstad, James Murphy, and Matthew Luzzi", True, BLACK)
     screen.blit(developer_text, (WIDTH // 40, HEIGHT - developer_text.get_height() - HEIGHT // 40))
+    return play_again_button
 
 def move_block():
     global moving_right
@@ -153,7 +198,7 @@ def drop_block():
 
 def check_win_condition():
     global game_won
-    if stack and any(block.top <= win_line_height for block in stack):
+    if stack and any(block.top < win_line_height for block in stack):
         game_won = True
 
 running = True
@@ -162,12 +207,22 @@ current_question["options"] = generate_options(current_question["answer"])
 
 while running:
     screen.fill(WHITE)
-    draw_title()
-    if game_won:
-        draw_game_won()
+    if not game_started:
+        draw_start_screen()
+    elif game_won:
+        play_again_button = draw_game_won()
+        mouse_pos = pygame.mouse.get_pos()
+        if pygame.mouse.get_pressed()[0]:
+            if play_again_button.collidepoint(mouse_pos):
+                reset_game()
     elif game_over:
-        draw_game_over()
+        play_again_button = draw_game_over()
+        mouse_pos = pygame.mouse.get_pos()
+        if pygame.mouse.get_pressed()[0]:
+            if play_again_button.collidepoint(mouse_pos):
+                reset_game()
     else:
+        draw_title()
         draw_question(current_question)
         draw_stack()
         draw_platform()
@@ -185,9 +240,12 @@ while running:
             running = False
             pygame.quit()
             sys.exit()
-        if not game_over and not game_won and event.type == pygame.KEYDOWN:
-            if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]:
-                choice = event.key - pygame.K_1
+        if not game_started and event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            game_started = True
+        if game_started and not game_won and not game_over and event.type == pygame.KEYDOWN:
+            labels = ["a", "b", "c", "d"]
+            if event.unicode in labels:
+                choice = labels.index(event.unicode)
                 if check_answer(current_question, choice):
                     falling = True
                     current_question = random.choice(questions)
